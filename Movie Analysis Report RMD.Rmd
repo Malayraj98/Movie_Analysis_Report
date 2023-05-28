@@ -1,0 +1,301 @@
+---
+title: "Movie Analysis Report"
+author: "Malay Raj"
+date: "2023-05-27"
+output:
+  word_document: default
+  html_document: default
+---
+
+## MOVIES DATASET ANALYSIS:
+
+Movies Dataset (made available by Rounak Banik under a CC0 license): Metadata about 45,000 movies, with data points
+including cast, crew, plot keywords, budget, revenue, ratings, release dates, languages, production companies, and more.
+
+## Loading Required Packages.
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(plyr)
+library(skimr)
+library(readxl)
+```
+
+
+## Displaying my current working directory.
+
+```{r}
+getwd()
+```
+
+## Collecting the data.
+
+```{r}
+movies = read_excel("C:/Movies Analysis/movies_data.xlsx")
+```
+
+## Displaying the first six rows of the dataset.
+
+```{r}
+head(movies)
+```
+
+## Checking the number of rows and dimension of the dataset.
+
+```{r}
+nrow(movies)
+
+dim(movies)
+```
+
+## Renaming few columns.
+
+```{r}
+movies=plyr::rename(movies, replace=c( "genres...5" = "Genres",
+                                       "title"="movies_title",
+                                       "id"="movies_id"))
+```
+
+
+## Viewing the new column names.
+
+```{r}
+colnames(movies)
+```
+
+
+## Inspecting the dataframe and look for inconguencies.
+
+```{r}
+str(movies)
+```
+
+# Convert  release_year to numeric datatype so that they can stack correctly.
+
+```{r}
+movies$release_year = as.numeric(movies$release_year)
+```
+
+## Inspecting the dataframe after changing the datatypes.
+
+```{r}
+str(movies)
+```
+
+
+## Removing few columns because we don't need it in our analysis.
+
+```{r}
+movies = subset(movies, select = -c(genres...4, production_countries, release_date))
+```
+
+
+## Viewing all the column left after removing the columns.
+
+```{r}
+colnames(movies)
+```
+
+
+## Checking for null values in our dataset.
+
+```{r}
+sum(is.null(movies))
+```
+
+
+## Checking for any duplicate values in our dataset.
+
+```{r}
+anyDuplicated(movies)
+```
+
+Removing the duplicate values from our dataset.
+
+```{r}
+movies1 <- unique(movies)
+```
+
+
+Now checking for the duplicate values again.
+
+```{r}
+anyDuplicated(movies1)
+```
+
+
+## Seeing how many observations fall under each of these columns.
+
+```{r}
+table(movies$Genres)
+table(movies$countries)
+table(movies$original_language)
+table(movies$release_year)
+```
+
+
+## CONDUCTNG DESCRIPTIVE ANALYSIS:
+
+Descriptive analysis on few columns.
+
+```{r}
+summary(movies1$budget)
+```
+
+
+```{r}
+summary(movies1$revenue)
+```
+
+
+```{r}
+summary(movies1$vote_average)
+```
+
+
+```{r}
+summary(movies1$vote_count)
+```
+
+
+Comparing vote_count, vote_average with different Genres.
+
+```{r}
+aggregate(movies1$vote_count ~ movies1$Genres, FUN = mean)
+aggregate(movies1$vote_count ~ movies1$Genres, FUN = median)
+aggregate(movies1$vote_count ~ movies1$Genres, FUN = max)
+aggregate(movies1$vote_count ~ movies1$Genres, FUN = min)
+```
+
+```{r}
+aggregate(movies1$vote_average ~ movies1$Genres, FUN = mean)
+aggregate(movies1$vote_average ~ movies1$Genres, FUN = median)
+aggregate(movies1$vote_average ~ movies1$Genres, FUN = max)
+aggregate(movies1$vote_average ~ movies1$Genres, FUN = min)
+```
+
+
+## SUMMARY STATISTICS.
+
+```{r}
+skimr::skim_without_charts(movies1)
+```
+
+
+As we can see there are few missing values in runtime column.
+
+```{r}
+movies1 <- movies1 %>% drop_na(runtime)
+```
+
+
+Again using the same code to check if the missing values are dropped or not.
+
+```{r}
+skimr::skim_without_charts(movies1)
+```
+
+
+## Checking the dimension of the dataframe after deleting columns and dropping missing values.
+
+```{r}
+dim(movies1) 
+```
+
+
+## DATA VISUALIZATION:
+
+Checking the number of votes per Genre.
+
+```{r}
+ggplot(movies1) + 
+  geom_col(mapping = aes(x=Genres, y=vote_count, fill=Genres)) + 
+  coord_flip() +
+  labs(title="Votes Per Genre") 
+```
+
+
+Checking number of votes with different status.
+
+```{r}
+ggplot(movies1) + 
+  geom_col(mapping = aes(x=status, y=vote_count)) + 
+  labs(title="Status Votes")
+```
+
+
+Checking for the number of votes per Genre.
+
+```{r}
+ggplot(movies1) + 
+  geom_col(mapping = aes(x=release_year, y=vote_count)) + 
+  labs(title="Votes Per Genre")
+```
+
+
+Checking the Top 10 movies popularity vise.
+
+```{r}
+movies1 %>%
+  arrange(-popularity) %>%
+  slice_head(n=10) %>%
+  ggplot(aes(reorder(movies_title, popularity), popularity)) +
+  geom_point(colour = "blue", size = 3) +
+  theme(text=element_text(size=10)) + 
+  coord_flip() +
+  labs(title = "Top 10 most popular movies of all time", x = "")
+```
+
+
+Checking for the Top 10 most voted movies.
+
+```{r}
+movies1 %>%
+  arrange(-vote_count) %>%
+  slice_head(n=10) %>%
+  ggplot(aes(reorder(movies_title, vote_count), vote_count)) +
+  geom_point(colour = "blue", size = 3) +
+  theme(text=element_text(size=10)) + 
+  coord_flip() +
+  labs(title = "Top 10 most voted movies of all times", x = "")
+```
+
+
+Checking the most popular Genres.
+
+```{r}
+ggplot(movies1 , aes(x = Genres, y = popularity)) +
+  geom_boxplot(aes(fill=Genres)) + theme_bw() +
+  theme(axis.text.x = element_text (angle = 90))
+```
+
+
+Checking for the Top 10 highest revenue generated movies of all time.
+
+```{r}
+movies1 %>%
+  arrange(-revenue) %>%
+  slice_head(n=10) %>%
+  ggplot(aes(reorder(Genres, revenue), revenue)) +
+  geom_point(colour = "blue", size = 3) +
+  theme(text=element_text(size=10)) + 
+  scale_y_continuous(labels=scales::dollar_format()) +
+  coord_flip() +
+  labs(title = "Top 10 most revenue generated movies of all times", x = "")
+```
+
+
+Checking for the most revenue generated Genres.
+
+```{r}
+movies1 %>%
+  ggplot(aes(x=Genres, y=revenue)) +
+  geom_col(fill='blue') +
+  coord_flip() +
+  scale_y_continuous(labels=scales::dollar_format()) +
+  labs(title="Most revenue generated genres")
+```
+
+
